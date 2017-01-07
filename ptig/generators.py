@@ -6,20 +6,25 @@ import math
 from bidi.algorithm import get_display
 from PIL import ImageFont, Image, ImageDraw
 
-from image_generator.arabic_reshaper import reshape
+from ptig.arabic_reshaper import reshape
 
 
-class ImageGenerator(object):
+# TODO: Add Config Class
+
+
+class PersianGenerator(object):
     PERSIAN_NUMBERS = list(reshape(u'۱۲۳۴۵۶۷۸۹۰'))
     ENGLISH_NUMBERS = list(u'1234567890')
+    
+    DIR_NAME = 'data_set'
 
     lexical = dict()
     mapping = dict()
 
-    def __init__(self, **kwargs):
-        # File Properties
-        self.file_path = kwargs.get('file_path', os.path.join(os.getcwd(), 'data.dat'))
-        self.file_encoding = kwargs.get('file_encoding', 'windows-1256')
+    def __init__(self, data_path, data_encoding='utf-8', **kwargs):
+        # Data Properties
+        self.data_path = data_path
+        self.data_encoding = data_encoding
 
         # Font Properties
         self.font_paths = kwargs.get('font_paths', ['PNazanin.TTF'])
@@ -31,7 +36,7 @@ class ImageGenerator(object):
         self.background_color = kwargs.get('background_color', (255, 255, 255))
         self.text_color = kwargs.get('text_color', (0, 0, 0))
 
-        self.dir_name = kwargs.get('dir_name', 'image_generator_data_set')
+        # TODO: Make this customizable
         self.data_sets_names = kwargs.get('data_sets_names', ['train', 'dev', 'val', 'lm'])
 
     @staticmethod
@@ -53,14 +58,14 @@ class ImageGenerator(object):
             os.chdir('..')
 
     def create_directories(self):
-        self.create_and_cd_directory(self.dir_name)
+        self.create_and_cd_directory(self.DIR_NAME)
         for data_set_name in self.data_sets_names:
             self.create_and_cd_directory(data_set_name)
             self.create_sub_directories()
             os.chdir('..')
 
     def _reshape_data(self):
-        with open(self.file_path, 'r', encoding=self.file_encoding) as f:
+        with open(self.data_path, 'r', encoding=self.data_encoding) as f:
             data = '\n'.join([' '.join(data_line.split()[::-1]) for data_line in f.read().split('\n')]).replace('#', '')
 
             for index, english_digit in enumerate(self.ENGLISH_NUMBERS, 0):
@@ -96,7 +101,7 @@ class ImageGenerator(object):
                 ' '.join([word[::-1] if word.isdigit() else word for word in text.split()])[::-1].encode('utf-8')
             )
 
-    def _create_map(self, word):
+    def _map(self, word):
         mapped_word = list()
         for letter in list(word):
             if letter.encode('utf-8') not in self.mapping:
@@ -110,7 +115,7 @@ class ImageGenerator(object):
     def _create_mapped_txt(self, name, text):
         text = u' '.join([word[::-1] if word.isdigit() else word for word in text.split()])[::-1]
         with open('{name}.dat2'.format(name=name), 'wb') as out:
-            out.write(u' '.join([self._create_map(word) for word in text.split()]).encode('utf-8'))
+            out.write(u' '.join([self._map(word) for word in text.split()]).encode('utf-8'))
 
     def _create_img(self, font, name, text, max_text_height):
         text_width, text_height = font.getsize(text)
